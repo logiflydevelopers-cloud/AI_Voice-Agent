@@ -16,4 +16,4 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-CMD ["python", "main.py"]
+CMD ["python", "main.py", "start"]
