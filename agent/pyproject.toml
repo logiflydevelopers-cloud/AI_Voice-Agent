@@ -1,0 +1,17 @@
+[project]
+name = "pinecone-voice-agent"
+version = "0.1.0"
+description = "LiveKit RAG voice agent"
+requires-python = ">=3.10"
+
+dependencies = [
+    "livekit-agents==1.4.1",
+    "livekit-plugins-openai",
+    "livekit-plugins-silero",
+    "python-dotenv",
+    "pinecone>=3.0.0",
+    "langchain>=0.2.0",
+    "langchain-openai",
+    "langchain-pinecone",
+    "tiktoken"
+]

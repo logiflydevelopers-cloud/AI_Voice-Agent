@@ -76,7 +76,7 @@ class RAGVoiceAgent(Agent):
 server = AgentServer()
 
 
-@server.rtc_session(name="voice-agent")
+@server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
 
     print("✅ Agent connected")

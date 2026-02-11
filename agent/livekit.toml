@@ -1,2 +1,7 @@
 [project]
-  subdomain = "voice-agent-608rn4au"
+subdomain = "voice-agent-608rn4au"
+
+[agent]
+id = "CA_JMhW8rP74t7B"
+name = "voice-agent"
+entrypoint = "main.py"
