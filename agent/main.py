@@ -76,30 +76,32 @@ class RAGVoiceAgent(Agent):
 server = AgentServer()
 
 
-@server.rtc_session()
+@server.rtc_session(agent_name="voice-agent")
 async def my_agent(ctx: agents.JobContext):
 
-    print("✅ Agent connected")
+    print("✅ Agent job received")
 
-    # 🔥 THIS IS THE CORRECT WAY
-    participant = ctx.linked_participant
+    # 🔥 STEP 1: CONNECT TO ROOM
+    await ctx.connect()
+
+    print("🔗 Room connected")
+
+    # 🔥 STEP 2: Wait for participant
+    participant = await ctx.wait_for_participant()
 
     if not participant:
-        print("⚠️ No linked participant found")
+        print("❌ No participant joined")
         return
 
-    user_id = participant.identity  # 🔥 isolate per user
-
+    user_id = participant.identity
     print("🔥 Using namespace:", user_id)
 
     initial_ctx = ChatContext()
 
-    # 1️⃣ STT
-    base_stt = openai.STT(
-        model="gpt-4o-transcribe"
-    )
+    # STT
+    base_stt = openai.STT(model="gpt-4o-transcribe")
 
-    # 2️⃣ VAD
+    # VAD
     vad_model = silero.VAD.load(
         min_speech_duration=0.1,
         min_silence_duration=0.5,
@@ -110,7 +112,7 @@ async def my_agent(ctx: agents.JobContext):
         vad=vad_model,
     )
 
-    # 3️⃣ Agent Session
+    # Agent session
     session = AgentSession(
         stt=streaming_stt,
         llm=openai.LLM(model="gpt-4o-mini"),
@@ -121,7 +123,7 @@ async def my_agent(ctx: agents.JobContext):
         room=ctx.room,
         agent=RAGVoiceAgent(
             chat_ctx=initial_ctx,
-            user_id=user_id,   # 🔥 per participant namespace
+            user_id=user_id,
         ),
         room_options=room_io.RoomOptions(),
     )

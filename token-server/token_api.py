@@ -1,8 +1,14 @@
 import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from livekit import api
 from dotenv import load_dotenv
+
+from livekit.api import (
+    AccessToken,
+    VideoGrants,
+    RoomConfiguration,
+    RoomAgentDispatch,
+)
 
 load_dotenv()
 
@@ -11,7 +17,6 @@ app = FastAPI()
 LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
-
 
 # ----------------------------
 # Validate Environment
@@ -45,38 +50,35 @@ async def get_token(body: TokenRequest):
         room_name = f"user-{user_id}"
 
         token = (
-            api.AccessToken(
+            AccessToken(
                 LIVEKIT_API_KEY,
                 LIVEKIT_API_SECRET,
             )
             .with_identity(user_id)
             .with_name(user_id)
             .with_grants(
-                api.VideoGrants(
+                VideoGrants(
                     room_join=True,
                     room=room_name,
-                    can_publish=True,
-                    can_subscribe=True,
                 )
             )
             # 🔥 AUTO DISPATCH YOUR AGENT
             .with_room_config(
-                api.RoomConfiguration(
+                RoomConfiguration(
                     agents=[
-                        api.RoomAgentDispatch(
-                            agent_name="voice-agent"  # must match rtc_session name
+                        RoomAgentDispatch(
+                            agent_name="voice-agent",  # MUST match livekit.toml
+                            metadata=f'{{"user_id": "{user_id}"}}',
                         )
                     ]
                 )
             )
         )
 
-        jwt_token = token.to_jwt()
-
         return {
             "server_url": LIVEKIT_URL,
             "room_name": room_name,
-            "participant_token": jwt_token,
+            "participant_token": token.to_jwt(),
         }
 
     except HTTPException:
