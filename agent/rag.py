@@ -3,48 +3,42 @@ from dotenv import load_dotenv
 
 from pinecone import Pinecone
 from langchain_openai import OpenAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
+from langchain_community.vectorstores import Pinecone as PineconeVectorStore
 
 load_dotenv()
 
 # ----------------------------
-# ENV VALIDATION
+# ENV VARIABLES
 # ----------------------------
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX = os.getenv("PINECONE_INDEX")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not PINECONE_API_KEY:
-    raise ValueError("❌ PINECONE_API_KEY is not set")
+    raise ValueError("❌ Missing PINECONE_API_KEY")
 
 if not PINECONE_INDEX:
-    raise ValueError("❌ PINECONE_INDEX is not set")
-
-if not OPENAI_API_KEY:
-    raise ValueError("❌ OPENAI_API_KEY is not set")
-
-
-# ----------------------------
-# INIT PINECONE
-# ----------------------------
+    raise ValueError("❌ Missing PINECONE_INDEX")
 
 print("🚀 Initializing Pinecone...")
 
+# ----------------------------
+# INIT PINECONE (NEW SDK)
+# ----------------------------
+
 pc = Pinecone(api_key=PINECONE_API_KEY)
+
 index = pc.Index(PINECONE_INDEX)
 
+print("🧠 Loading OpenAI embeddings...")
 
 # ----------------------------
-# EMBEDDINGS (reuse instance)
+# EMBEDDINGS
 # ----------------------------
-
-print("🧠 Loading embeddings...")
 
 embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small"  # faster + cheaper
+    model="text-embedding-3-small"
 )
-
 
 # ----------------------------
 # VECTOR STORE
@@ -53,58 +47,50 @@ embeddings = OpenAIEmbeddings(
 vectorstore = PineconeVectorStore(
     index=index,
     embedding=embeddings,
-    text_key="text",  # must match metadata key
+    text_key="text"
 )
 
 print("✅ Pinecone vectorstore ready")
 
-
 # ----------------------------
-# WARMUP (removes cold start)
+# WARMUP (avoid first query delay)
 # ----------------------------
 
 try:
-    print("🔥 Warming Pinecone connection...")
+    print("🔥 Warming Pinecone...")
     vectorstore.similarity_search("warmup", k=1)
-    print("✅ Pinecone warmup complete")
+    print("✅ Pinecone warmed up")
 except Exception as e:
-    print("⚠️ Pinecone warmup failed:", e)
-
+    print("⚠️ Pinecone warmup skipped:", e)
 
 # ----------------------------
 # QUERY FUNCTION
 # ----------------------------
 
 def query_pinecone(query: str, user_id: str):
-    """
-    Query Pinecone using metadata filter (userId).
-    Returns LangChain Documents.
-    """
 
     if not query:
         return []
 
     try:
-        print("\n🔎 Pinecone Query")
-        print("User:", user_id)
+        print(f"\n🔎 Pinecone Query | userId={user_id}")
         print("Query:", query)
 
         results = vectorstore.similarity_search_with_score(
             query=query,
-            k=3,  # lower = faster for voice agents
+            k=3,  # lower = faster voice responses
             filter={"userId": {"$eq": user_id}},
         )
 
-        # Lower score = better match (cosine distance)
         SCORE_THRESHOLD = 1.0
 
-        filtered_docs = [
+        docs = [
             doc for doc, score in results if score < SCORE_THRESHOLD
         ]
 
-        print(f"📄 Retrieved {len(filtered_docs)} relevant docs")
+        print(f"📄 Retrieved {len(docs)} relevant docs")
 
-        return filtered_docs
+        return docs
 
     except Exception as e:
         print("❌ Pinecone error:", str(e))
