@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 from pinecone import Pinecone
 from langchain_openai import OpenAIEmbeddings
-from langchain_pinecone import Pinecone as PineconeVectorStore
+from langchain_pinecone import PineconeVectorStore
 
 load_dotenv()
 
@@ -26,27 +26,49 @@ if not OPENAI_API_KEY:
 
 
 # ----------------------------
-# INIT PINECONE (Modern SDK)
+# INIT PINECONE
 # ----------------------------
+
+print("🚀 Initializing Pinecone...")
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(PINECONE_INDEX)
 
-# ----------------------------
-# EMBEDDINGS (Reuse instance)
-# ----------------------------
-
-embeddings = OpenAIEmbeddings()
 
 # ----------------------------
-# VECTORSTORE (Reuse instance)
+# EMBEDDINGS (reuse instance)
+# ----------------------------
+
+print("🧠 Loading embeddings...")
+
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small"  # faster + cheaper
+)
+
+
+# ----------------------------
+# VECTOR STORE
 # ----------------------------
 
 vectorstore = PineconeVectorStore(
     index=index,
     embedding=embeddings,
-    text_key="text",  # Must match your stored metadata key
+    text_key="text",  # must match metadata key
 )
+
+print("✅ Pinecone vectorstore ready")
+
+
+# ----------------------------
+# WARMUP (removes cold start)
+# ----------------------------
+
+try:
+    print("🔥 Warming Pinecone connection...")
+    vectorstore.similarity_search("warmup", k=1)
+    print("✅ Pinecone warmup complete")
+except Exception as e:
+    print("⚠️ Pinecone warmup failed:", e)
 
 
 # ----------------------------
@@ -56,21 +78,21 @@ vectorstore = PineconeVectorStore(
 def query_pinecone(query: str, user_id: str):
     """
     Query Pinecone using metadata filter (userId).
-    Returns filtered LangChain Document objects.
+    Returns LangChain Documents.
     """
 
     if not query:
         return []
 
     try:
-        print(f"\n🔎 Pinecone Query | userId={user_id}")
+        print("\n🔎 Pinecone Query")
+        print("User:", user_id)
         print("Query:", query)
 
-        # Search top 4 matches filtered by userId metadata
         results = vectorstore.similarity_search_with_score(
             query=query,
-            k=4,
-            filter={"userId": user_id},
+            k=3,  # lower = faster for voice agents
+            filter={"userId": {"$eq": user_id}},
         )
 
         # Lower score = better match (cosine distance)
@@ -80,7 +102,7 @@ def query_pinecone(query: str, user_id: str):
             doc for doc, score in results if score < SCORE_THRESHOLD
         ]
 
-        print(f"✅ Retrieved {len(filtered_docs)} relevant docs")
+        print(f"📄 Retrieved {len(filtered_docs)} relevant docs")
 
         return filtered_docs
 

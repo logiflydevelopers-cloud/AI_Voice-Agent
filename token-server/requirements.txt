@@ -1,5 +1,10 @@
 fastapi
-uvicorn[standard]
-livekit-api
+uvicorn
 python-dotenv
-pydantic
+livekit-api
+livekit-agents
+pinecone
+langchain
+langchain-openai
+langchain-pinecone
+openai

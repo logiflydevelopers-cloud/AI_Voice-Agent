@@ -1,9 +1,10 @@
-livekit-agents==1.4.1
-livekit-plugins-openai
-livekit-plugins-silero
+fastapi
+uvicorn
 python-dotenv
-pinecone>=3.0.0
-langchain>=0.2.0
+livekit-api
+livekit-agents
+pinecone
+langchain
 langchain-openai
 langchain-pinecone
-tiktoken
+openai
