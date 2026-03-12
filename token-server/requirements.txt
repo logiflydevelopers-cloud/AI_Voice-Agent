@@ -4,6 +4,8 @@ python-dotenv
 
 livekit-api
 livekit-agents
+livekit-plugins-openai
+livekit-plugins-silero
 
 openai
 
